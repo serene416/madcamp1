@@ -1,12 +1,9 @@
 package com.example.myapplication
 
 import android.Manifest
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -40,15 +36,15 @@ import com.example.myapplication.data.SpotDetail
 import com.example.myapplication.data.TripLength
 import com.example.myapplication.data.TripPlan
 import com.example.myapplication.ui.theme.MyApplicationTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import com.example.myapplication.data.TripPlanFactory
+import coil.compose.AsyncImage
+
 
 
 class MainActivity : ComponentActivity() {
@@ -67,7 +63,7 @@ private enum class BottomTab { FIRST, SECOND, THIRD }
 @Composable
 private fun App() {
     var currentTab by remember { mutableStateOf(BottomTab.FIRST) }
-    val imagesList = remember { mutableStateListOf<Bitmap>() }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -100,18 +96,19 @@ private fun App() {
             when (currentTab) {
                 BottomTab.FIRST -> FirstTabQuestionFlow()
                 BottomTab.SECOND -> SecondTab()
-                BottomTab.THIRD -> CameraTab(imagesList)
+                BottomTab.THIRD -> CameraTab()   // ✅ 인자 없음
             }
         }
     }
 }
+
 
 /* -------------------- 1번 탭 : 여행지 추천 -------------------- */
 
 private enum class Step { Q1, Q2, Q3, Q4, Q5, Q6, Q7, RESULT }
 
 private enum class Region {
-    TOKYO, OSAKA, FUKUOKA, SAPPORO, NAGOYA
+   TOKYO, OSAKA, FUKUOKA, SAPPORO, NAGOYA
 }
 
 @Composable
@@ -487,7 +484,7 @@ fun SelectionScreen(
                     onClick = { onSelectCity(city) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (selectedCity == city) "✓ ${city.name}" else city.name)
+                    Text(if (selectedCity == city) "✓ ${city.displayName}" else city.displayName)
                 }
             }
         }
@@ -514,7 +511,7 @@ fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("${plan.city.name} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("${plan.city.displayName} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             OutlinedButton(onClick = onBack) { Text("뒤로") }
         }
 
@@ -572,141 +569,130 @@ fun DayDetailPage(dayPlan: DayPlan) {
 /* -------------------- 3번 탭 -------------------- */
 
 @Composable
-private fun CameraTab(imagesList: MutableList<Bitmap>) {
+fun CameraTab() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedImage by remember { mutableStateOf<Bitmap?>(null) }
+    val photoUris = remember { mutableStateListOf<Uri>() }
 
-    fun createImageUri(): Uri {
-        val imageFile = File(
-            context.cacheDir,
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 앱 시작 시 기존 사진 로드
+    LaunchedEffect(Unit) {
+        context.filesDir.listFiles()
+            ?.filter { it.name.startsWith("photo_") }
+            ?.forEach { file ->
+                photoUris.add(Uri.fromFile(file))
+            }
+    }
+
+    fun createPhotoUri(): Uri {
+        val file = File(
+            context.filesDir,
             "photo_${System.currentTimeMillis()}.jpg"
-        ).apply { createNewFile() }
-
+        )
         return FileProvider.getUriForFile(
             context,
             "${context.packageName}.provider",
-            imageFile
+            file
         )
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && imageUri != null) {
-            scope.launch {
-                val bitmap = withContext(Dispatchers.IO) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        ImageDecoder.decodeBitmap(
-                            ImageDecoder.createSource(context.contentResolver, imageUri!!)
-                        )
-                    } else {
-                        MediaStore.Images.Media.getBitmap(context.contentResolver, imageUri!!)
-                    }
+    val cameraLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.TakePicture()
+        ) { success ->
+            if (success) {
+                tempPhotoUri?.let { uri ->
+                    photoUris.add(uri)
                 }
-                imagesList.add(bitmap)
             }
         }
-    }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            val uri = createImageUri()
-            imageUri = uri
-            cameraLauncher.launch(uri)
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                val uri = createPhotoUri()
+                tempPhotoUri = uri
+                cameraLauncher.launch(uri)
+            }
         }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
-            Text(
-                text = "일본 여행 사진 기록",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("여행 사진 기록", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(Modifier.height(20.dp))
-
-            if (imagesList.isEmpty()) {
-                Text("아직 찍은 사진이 없어요", fontSize = 16.sp)
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(items = imagesList.chunked(2)) { rowBitmaps ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowBitmaps.forEach { bitmap ->
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(150.dp)
-                                        .clickable { selectedImage = bitmap }
-                                )
-                            }
-                            if (rowBitmaps.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(photoUris.chunked(2)) { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { uri ->
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(160.dp)
+                                    .clickable { selectedUri = uri }
+                            )
+                        }
+                        if (row.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
 
-        Box(
+        Button(
+            onClick = {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(24.dp)
+                .padding(20.dp)
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
-            Button(
-                onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text("📸 사진 찍기", fontSize = 18.sp)
-            }
+            Text("📸 사진 찍기", fontSize = 18.sp)
         }
     }
 
-    selectedImage?.let { bitmap ->
-        Dialog(onDismissRequest = { selectedImage = null }) {
+    selectedUri?.let { uri ->
+        Dialog(onDismissRequest = { selectedUri = null }) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f)),
+                    .background(Color.Black.copy(alpha = 0.85f)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
+                    AsyncImage(
+                        model = uri,
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(0.75f)
-                            .clickable { selectedImage = null }
                     )
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = {
-                            imagesList.remove(bitmap)
-                            selectedImage = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                            File(uri.path!!).delete()
+                            photoUris.remove(uri)
+                            selectedUri = null
+                        }
                     ) {
-                        Text("삭제", color = Color.White)
+                        Text("삭제")
                     }
                 }
             }
