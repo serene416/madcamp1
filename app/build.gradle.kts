@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) {
+        f.inputStream().use { load(it) }
+    }
+}
+
+val placesApiKey: String = localProps.getProperty("PLACES_API_KEY") ?: ""
+val placesBaseUrl: String = localProps.getProperty("PLACES_BASE_URL") ?: "https://maps.googleapis.com/"
 
 android {
     namespace = "com.example.myapplication"
@@ -16,6 +27,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "PLACES_API_KEY", "\"$placesApiKey\"")
+        buildConfigField("String", "PLACES_BASE_URL", "\"$placesBaseUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +55,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -66,6 +81,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // OkHttp Logging
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

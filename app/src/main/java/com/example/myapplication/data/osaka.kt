@@ -12,13 +12,24 @@ val osaka = listOf(
         Place("츠텐카쿠", 34.652500, 135.506302, "신세카이"),
         Place("쿠로몬 시장", 34.6646008, 135.5069718, "난바"),
         Place("난바 야사카 신사", 34.661222, 135.496694, "난바"),
-        Place("스미요시타이샤", 34.6127972, 135.4929417, "남부")
+        Place("스미요시타이샤", 34.6127972, 135.4929417, "남부"),
+        Place("난바", 34.6685, 135.5019, "난바"),
+        Place("우메다", 34.7053, 135.4901, "우메다"),
+        Place("덴덴타운", 34.6595, 135.5063, "난바"),
+        Place("텐진바시스지 상점가", 34.7025, 135.5123, "중앙"),
+        Place("가이유칸", 34.6527, 135.4240, "베이 에리어"),
+
     )
 
 
 fun buildOsakaPlan(length: TripLength): TripPlan {
-    fun s(name: String, desc: String, imageResId: Int) =
-        SpotDetail(name = name, description = desc, imageResId = imageResId)
+    val coordMap = osaka.associateBy({ it.name }, { it.lat to it.lng })
+
+    fun s(name: String, desc: String, imageResId: Int): SpotDetail {
+        val (lat, lng) = coordMap[name]
+            ?: error("좌표가 없습니다: $name (osaka 리스트에 같은 이름 Place를 추가하세요)")
+        return SpotDetail(name = name, description = desc, imageResId = imageResId, lat = lat, lng = lng)
+    }
 
     val days = when (length) {
 

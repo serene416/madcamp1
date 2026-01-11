@@ -6,8 +6,11 @@ enum class TripLength { D3_4, D4_5, D5_6 }
 data class SpotDetail(
     val name: String,
     val description: String,
-    val imageResId: Int? = null // drawable 연결 전이면 null 가능
+    val imageResId: Int? = null,
+    val lat: Double,   // 추가
+    val lng: Double    // 추가
 )
+
 
 data class DayPlan(
     val day: Int,
