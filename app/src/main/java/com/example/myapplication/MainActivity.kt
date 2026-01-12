@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -49,7 +50,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import com.example.myapplication.data.TripPlanFactory
 import com.example.myapplication.network.PlacesClient
-import kotlinx.coroutines.launch
 import com.example.myapplication.ui.tab2.RestaurantListScreen
 import com.example.myapplication.data.toLatLng
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,7 +57,6 @@ import androidx.compose.runtime.collectAsState
 import com.example.myapplication.ui.tab2.SpotRestaurantViewModel
 import com.example.myapplication.network.placePhotoUrl
 import com.example.myapplication.ui.tab2.SpotRestaurantUiState
-import androidx.compose.ui.draw.clip
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -427,20 +426,21 @@ fun ResultCard(result: String) {
 
 @Composable
 fun SecondTab() {
-    var selectedCity by remember { mutableStateOf<City?>(null) }
-    var selectedLength by remember { mutableStateOf<TripLength?>(null) }
+    var selectedCity by remember { mutableStateOf<City?>(null) } // remember : 화면 살아있는동안 상태 유지
+    var selectedLength by remember { mutableStateOf<TripLength?>(null) }//mutableStateOf<TripLength?>(null):초기값 null인 상태 객체
     var tripPlan by remember { mutableStateOf<TripPlan?>(null) }
-
-    // 맛집 화면으로 전환할지 여부
     var showRestaurants by remember { mutableStateOf(false) }
+    //위 네개 전부 상태를 저장할 변수들
 
-    // 스낵바 상태
+    // 스낵바(화면 아래에 잠깐 뜨는 알림 메시지) 상태 관리
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    /*스낵바 띄우는 함수 :보통 서스펜드함수 *서스펜드 함수: 오래걸리는 함수를 ui꺼지지 않고 실행되게 하기 위한 함수(서스펜드 함수
+    안이나 코루틴 안에서만 실행 가능-그래서 리멤버코루틴을 써서 compasable안에서 코루틴을 실행 가능케 함*/
 
-    Scaffold(
+    Scaffold(  //Scaffold : 화면의 기본 레이아웃 골격(뼈대)을 제공하는 컨테이너(여기선 스낵바 위해 사용)
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    ) { padding -> //padding : scaffold가 계산한 여백을 넘겨줌. (그 여백에 작업할수있도록)
 
         // 1) 맛집 화면 (도시 선택 상태 필요)
         if (showRestaurants) {
@@ -647,10 +647,26 @@ fun DayDetailPage(dayPlan: DayPlan) {
 
 @Composable
 private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) {
+    val context = LocalContext.current
     val photoRef = r.photos?.firstOrNull()?.photo_reference
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = r.place_id != null) {
+                r.place_id?.let { placeId ->
+                    val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(r.name)}&query_place_id=$placeId")
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    intent.setPackage("com.google.android.apps.maps")
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // Fallback if Google Maps is not installed
+                        val webIntent = Intent(Intent.ACTION_VIEW, uri)
+                        context.startActivity(webIntent)
+                    }
+                }
+            },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
