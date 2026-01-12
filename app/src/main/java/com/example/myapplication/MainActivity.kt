@@ -1,9 +1,12 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,11 +19,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -30,22 +36,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.example.myapplication.data.City
 import com.example.myapplication.data.DayPlan
 import com.example.myapplication.data.SpotDetail
 import com.example.myapplication.data.TripLength
 import com.example.myapplication.data.TripPlan
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import com.example.myapplication.data.TripPlanFactory
-import coil.compose.AsyncImage
-
-
+import com.example.myapplication.network.PlacesClient
+import kotlinx.coroutines.launch
+import com.example.myapplication.ui.tab2.RestaurantListScreen
+import com.example.myapplication.data.toLatLng
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import com.example.myapplication.ui.tab2.SpotRestaurantViewModel
+import com.example.myapplication.network.placePhotoUrl
+import com.example.myapplication.ui.tab2.SpotRestaurantUiState
+import androidx.compose.ui.draw.clip
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +75,7 @@ private enum class BottomTab { FIRST, SECOND, THIRD }
 @Composable
 private fun App() {
     var currentTab by remember { mutableStateOf(BottomTab.FIRST) }
+    val imagesList = remember { mutableStateListOf<Bitmap>() }
 
     Scaffold(
         bottomBar = {
@@ -96,19 +109,25 @@ private fun App() {
             when (currentTab) {
                 BottomTab.FIRST -> FirstTabQuestionFlow()
                 BottomTab.SECOND -> SecondTab()
-                BottomTab.THIRD -> CameraTab()   // ✅ 인자 없음
+                BottomTab.THIRD -> CameraTab()
             }
         }
     }
 }
 
+@Composable
+private fun PlaceholderScreen(title: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(title, fontSize = 20.sp)
+    }
+}
 
-/* -------------------- 1번 탭 : 여행지 추천 -------------------- */
+/* -------------------- 1번 탭 -------------------- */
 
 private enum class Step { Q1, Q2, Q3, Q4, Q5, Q6, Q7, RESULT }
 
 private enum class Region {
-   TOKYO, OSAKA, FUKUOKA, SAPPORO, NAGOYA
+    TOKYO, OSAKA, FUKUOKA, SAPPORO, NAGOYA
 }
 
 @Composable
@@ -402,9 +421,8 @@ fun ResultCard(result: String) {
     }
 }
 
-/* -------------------- 2번 탭 -------------------- */
 
-// 2번 탭, 도쿄부터
+// ----------------2번 탭---------------
 
 
 @Composable
@@ -413,15 +431,32 @@ fun SecondTab() {
     var selectedLength by remember { mutableStateOf<TripLength?>(null) }
     var tripPlan by remember { mutableStateOf<TripPlan?>(null) }
 
-    // ✅ 스낵바 상태
+    // 맛집 화면으로 전환할지 여부
+    var showRestaurants by remember { mutableStateOf(false) }
+
+    // 스낵바 상태
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // ✅ 화면에 SnackbarHost를 붙여줘야 실제로 뜹니다
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
 
+        // 1) 맛집 화면 (도시 선택 상태 필요)
+        if (showRestaurants) {
+            val city = selectedCity ?: return@Scaffold
+            val ll = city.toLatLng()
+
+            RestaurantListScreen(
+                title = "${city.name} 주변 맛집",
+                lat = ll.lat,
+                lng = ll.lng,
+                onBack = { showRestaurants = false }
+            )
+            return@Scaffold
+        }
+
+        // 2) 루트(관광지) 화면: 아직 계획 없으면 선택 화면, 있으면 DayPager
         if (tripPlan == null) {
             SelectionScreen(
                 modifier = Modifier.padding(padding),
@@ -429,23 +464,32 @@ fun SecondTab() {
                 selectedLength = selectedLength,
                 onSelectCity = { selectedCity = it },
                 onSelectLength = { selectedLength = it },
-                onGoNext = {
-                    // ✅ 1) 도시 미선택이면 막기
+
+                onGoNext = onGoNext@{
+                    // 1) 도시 미선택 방지
                     if (selectedCity == null) {
                         scope.launch { snackbarHostState.showSnackbar("도시를 골라주세요") }
-                        return@SelectionScreen
+                        return@onGoNext
                     }
-                    // ✅ 2) 기간 미선택이면 막기
+                    // 2) 기간 미선택 방지
                     if (selectedLength == null) {
                         scope.launch { snackbarHostState.showSnackbar("기간을 골라주세요") }
-                        return@SelectionScreen
+                        return@onGoNext
                     }
 
-                    // ✅ 둘 다 선택된 경우에만 다음으로
+                    // 둘 다 선택된 경우에만 다음으로
                     val city = selectedCity!!
                     val length = selectedLength!!
-
                     tripPlan = TripPlanFactory.create(city, length)
+                },
+
+                onGoRestaurants = onGoRestaurants@{
+                    // 도시 미선택이면 막기
+                    if (selectedCity == null) {
+                        scope.launch { snackbarHostState.showSnackbar("도시를 먼저 골라주세요") }
+                        return@onGoRestaurants
+                    }
+                    showRestaurants = true
                 }
             )
         } else {
@@ -457,16 +501,24 @@ fun SecondTab() {
     }
 }
 
-@Composable  // 기간,장소 선택
+@Composable
 fun SelectionScreen(
     modifier: Modifier = Modifier,
     selectedCity: City?,
     selectedLength: TripLength?,
     onSelectCity: (City) -> Unit,
     onSelectLength: (TripLength) -> Unit,
-    onGoNext: () -> Unit
+    onGoNext: () -> Unit,
+    onGoRestaurants: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Text("기간 선택", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -484,7 +536,7 @@ fun SelectionScreen(
                     onClick = { onSelectCity(city) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (selectedCity == city) "✓ ${city.displayName}" else city.displayName)
+                    Text(if (selectedCity == city) "✓ ${city.name}" else city.name)
                 }
             }
         }
@@ -495,9 +547,9 @@ fun SelectionScreen(
             onClick = onGoNext,
             modifier = Modifier.fillMaxWidth(),
             enabled = selectedLength != null && selectedCity != null
-        ) {
-            Text("루트 보기")
-        }
+        ) { Text("루트 보기") }
+
+
     }
 }
 
@@ -511,7 +563,7 @@ fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("${plan.city.displayName} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("${plan.city.name} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             OutlinedButton(onClick = onBack) { Text("뒤로") }
         }
 
@@ -525,8 +577,11 @@ fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
     }
 }
 
-@Composable // 각 루트에서 관광지 페이지 하나
+@Composable
 fun DayDetailPage(dayPlan: DayPlan) {
+    val vm: SpotRestaurantViewModel = viewModel()
+    val state by vm.state.collectAsState()
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -538,6 +593,13 @@ fun DayDetailPage(dayPlan: DayPlan) {
         }
 
         items(dayPlan.spots) { spot ->
+            val spotKey = "${dayPlan.day}-${spot.name}" // 스팟별 유니크 키
+
+            // ✅ 스팟 카드가 화면에 올라오면 1회 호출(캐싱으로 중복 방지)
+            LaunchedEffect(spotKey) {
+                vm.loadForSpot(spotKey, spot)
+            }
+
             Card(Modifier.fillMaxWidth()) {
                 Column(
                     Modifier.padding(16.dp),
@@ -559,15 +621,75 @@ fun DayDetailPage(dayPlan: DayPlan) {
                     }
 
                     Text(spot.description, fontSize = 14.sp)
+
+                    // ✅ 여기부터 맛집 섹션
+                    Divider()
+                    Text("주변 맛집 1곳", fontWeight = FontWeight.Bold)
+
+                    when {
+                        state.loading.contains(spotKey) -> {
+                            CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                        }
+                        state.error[spotKey] != null -> {
+                            Text("불러오기 실패: ${state.error[spotKey]}")
+                        }
+                        else -> {
+                            val r = state.data[spotKey]
+                            if (r == null) Text("근처 맛집 결과가 없습니다.")
+                            else OneRestaurantCard(r)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+@Composable
+private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) {
+    val photoRef = r.photos?.firstOrNull()?.photo_reference
 
-/* -------------------- 3번 탭 -------------------- */
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (!photoRef.isNullOrBlank()) {
+            AsyncImage(
+                model = placePhotoUrl(photoRef),
+                contentDescription = r.name,
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(MaterialTheme.shapes.medium),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(Color(0xFFECEFF1)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No\nImage", textAlign = TextAlign.Center, fontSize = 12.sp)
+            }
+        }
 
+        Column(Modifier.weight(1f)) {
+            Text(r.name ?: "(no name)", fontWeight = FontWeight.SemiBold)
+            Text(
+                "평점: ${r.rating ?: "-"} · 리뷰: ${r.user_ratings_total ?: 0}",
+                fontSize = 12.sp
+            )
+            if (!r.vicinity.isNullOrBlank()) {
+                Text(r.vicinity!!, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+//----------------------3번탭----------------
+//-----------------------------------------
 @Composable
 fun CameraTab() {
     val context = LocalContext.current
