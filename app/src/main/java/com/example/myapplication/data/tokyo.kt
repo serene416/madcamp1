@@ -25,7 +25,7 @@ fun buildTokyoPlan(length: TripLength): TripPlan {
     //도쿄 루트
     // imageResId까지 받도록 확장
     val coordMap = tokyo.associateBy({ it.name }, { it.lat to it.lng })
-
+    // 지역 이름이랑 좌표를 매칭
     fun s(name: String, desc: String, imageResId: Int): SpotDetail {
         val (lat, lng) = coordMap[name]
             ?: error("좌표가 없습니다: $name (tokyo 리스트에 같은 이름 Place를 추가하세요)")

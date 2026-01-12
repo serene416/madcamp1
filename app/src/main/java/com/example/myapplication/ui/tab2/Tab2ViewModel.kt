@@ -13,7 +13,7 @@ data class Tab2UiState(
     val items: List<PlaceResult> = emptyList(),
     val error: String? = null
 )
-
+// 스팟 하나에 들어갈 맛집 하나를 받아 관리하는 뷰모델
 class Tab2ViewModel(
     private val repo: PlacesRepository = PlacesRepository()
 ) : ViewModel() {
