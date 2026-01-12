@@ -23,13 +23,8 @@ val nagoya = listOf(
 
 fun buildNagoyaPlan(length: TripLength): TripPlan {
 
-    val coordMap = nagoya.associateBy({ it.name }, { it.lat to it.lng })
-
-    fun s(name: String, desc: String, imageResId: Int): SpotDetail {
-        val (lat, lng) = coordMap[name]
-            ?: error("좌표가 없습니다: $name (nagoya 리스트에 같은 이름 Place를 추가하세요)")
-        return SpotDetail(name = name, description = desc, imageResId = imageResId, lat = lat, lng = lng)
-    }
+    fun s(name: String, desc: String, imageResId: Int) =
+        SpotDetail(name = name, description = desc, imageResId = imageResId)
 
     val days = when (length) {
 

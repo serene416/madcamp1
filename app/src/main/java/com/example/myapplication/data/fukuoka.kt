@@ -16,10 +16,7 @@ val fukuoka = listOf(
 
     // 온천 핵심: 유후인(오이타현)
     Place("유후인역", 33.2634, 131.3236, "유후인-온천"),
-    Place("긴린코 호수", 33.2666, 131.3126, "유후인-온천"),
-    Place("하카타역·JR 하카타시티", 33.5902, 130.4206, "후쿠오카-하카타"),
-    Place("나카스 야타이 거리", 33.5941, 130.4088, "후쿠오카-하카타"),
-    Place("유후인(당일치기)", 33.2634, 131.3236, "유후인-온천"),
+    Place("긴린코 호수", 33.2666, 131.3126, "유후인-온천")
 )
 
 
@@ -27,13 +24,8 @@ val fukuoka = listOf(
 
 fun buildFukuokaPlan(length: TripLength): TripPlan {
 
-    val coordMap = fukuoka.associateBy({ it.name }, { it.lat to it.lng })
-
-    fun s(name: String, desc: String, imageResId: Int): SpotDetail {
-        val (lat, lng) = coordMap[name]
-            ?: error("좌표가 없습니다: $name (fukuoka 리스트에 같은 이름 Place를 추가하세요)")
-        return SpotDetail(name = name, description = desc, imageResId = imageResId, lat = lat, lng = lng)
-    }
+    fun s(name: String, desc: String, imageResId: Int? = null) =
+        SpotDetail(name = name, description = desc, imageResId = imageResId)
 
     val days = when (length) {
 

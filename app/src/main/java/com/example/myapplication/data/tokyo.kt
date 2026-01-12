@@ -12,25 +12,14 @@ val tokyo = listOf(
     Place("긴자", 35.6717, 139.7650, "중앙"),
     Place("오다이바", 35.6272, 139.7768, "해안"),
     Place("롯폰기 힐즈", 35.6605, 139.7292, "서도쿄"),
-    Place("츠키지 시장", 35.6655, 139.7708, "중앙"),
-    Place("시부야", 35.6595, 139.7005, "서도쿄"),     // 시부야 스크램블 좌표
-    Place("신주쿠", 35.6938, 139.7034, "서도쿄"),     // 신주쿠 가부키초 좌표
-    Place("아사쿠사", 35.7148, 139.7967, "동도쿄"),   // 아사쿠사 센소지 좌표
-    Place("우에노", 35.7156, 139.7745, "동도쿄"),     // 우에노 공원 좌표
-    Place("롯폰기", 35.6605, 139.7292, "서도쿄")    // 롯폰기 힐즈 좌표
-
+    Place("츠키지 시장", 35.6655, 139.7708, "중앙")
 )
 
 fun buildTokyoPlan(length: TripLength): TripPlan {
     //도쿄 루트
     // imageResId까지 받도록 확장
-    val coordMap = tokyo.associateBy({ it.name }, { it.lat to it.lng })
-
-    fun s(name: String, desc: String, imageResId: Int): SpotDetail {
-        val (lat, lng) = coordMap[name]
-            ?: error("좌표가 없습니다: $name (tokyo 리스트에 같은 이름 Place를 추가하세요)")
-        return SpotDetail(name = name, description = desc, imageResId = imageResId, lat = lat, lng = lng)
-    }
+    fun s(name: String, desc: String, imageResId: Int? = null) =
+        SpotDetail(name = name, description = desc, imageResId = imageResId)
 
     val days = when (length) {
 

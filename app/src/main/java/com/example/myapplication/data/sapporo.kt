@@ -9,9 +9,6 @@ val sapporo = listOf(
     Place("삿포로역", 43.0687, 141.3507, "삿포로-시내"),
     Place("스스키노", 43.0553, 141.3546, "삿포로-시내"),
     Place("니조 시장", 43.0577, 141.3608, "삿포로-시내"),
-    Place("삿포로 맥주 박물관", 43.0706, 141.3680, "삿포로-시내"),
-    Place("모이와야마", 43.0316, 141.3223, "삿포로-서부"),
-    Place("오타루", 43.1980, 141.0010, "오타루-근교"),
 
     // 삿포로 서부(케이블카/야경)
     Place("모이와 산 로프웨이", 43.0351, 141.3223, "삿포로-서부"),
@@ -21,17 +18,7 @@ val sapporo = listOf(
     Place("오타루 사카이마치 거리", 43.1998, 141.0032, "오타루-근교"),
 
     // 근교 2: 조잔케이(온천)
-    Place("조잔케이 온천", 42.9670, 141.1679, "조잔케이-온천"),
-    // ✅ 일정에서 쓰는 이름과 맞추기(추가)
-    Place("사카에·오아시스21", 35.1709, 136.9086, "나고야-시내"),     // 오아시스21 좌표
-    Place("미라이 타워(나고야 TV 타워)", 35.1704, 136.9081, "나고야-시내"), // TV 타워 좌표
-
-    Place("SCMAGLEV·철도관", 35.0969, 136.8506, "나고야-항구"),       // 리니어·철도관(킨조후토 근처 대표값)
-    Place("레고랜드 재팬", 35.0387, 136.8473, "나고야-항구"),          // 레고랜드(킨조후토 대표값)
-
-    Place("사카에(마무리 산책)", 35.1681, 136.9066, "나고야-시내"),     // 사카에 좌표
-    Place("사카에(자유 일정)", 35.1681, 136.9066, "나고야-시내")     // 사카에 좌표
-
+    Place("조잔케이 온천", 42.9670, 141.1679, "조잔케이-온천")
 )
 
 
@@ -39,14 +26,9 @@ val sapporo = listOf(
 
 
 fun buildSapporoPlan(length: TripLength): TripPlan {
-    val coordMap = sapporo.associateBy({ it.name }, { it.lat to it.lng })
 
-    fun s(name: String, desc: String, imageResId: Int): SpotDetail {
-        val (lat, lng) = coordMap[name]
-            ?: error("좌표가 없습니다: $name (sapporo 리스트에 같은 이름 Place를 추가하세요)")
-        return SpotDetail(name = name, description = desc, imageResId = imageResId, lat = lat, lng = lng)
-    }
-
+    fun s(name: String, desc: String, imageResId: Int) =
+        SpotDetail(name = name, description = desc, imageResId = imageResId)
 
     val days = when (length) {
 
