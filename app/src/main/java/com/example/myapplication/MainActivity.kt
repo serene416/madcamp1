@@ -714,7 +714,7 @@ fun CameraTab() {
         )
         return FileProvider.getUriForFile(
             context,
-            "${context.packageName}.provider",
+            "com.example.myapplication.fileprovider",
             file
         )
     }
