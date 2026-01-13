@@ -58,6 +58,10 @@ import com.example.myapplication.ui.tab2.SpotRestaurantViewModel
 import com.example.myapplication.network.placePhotoUrl
 import com.example.myapplication.ui.tab2.SpotRestaurantUiState
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.graphics.Color.Companion.White
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -688,30 +692,37 @@ private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) 
     }
 }
 
-//----------------------3번탭----------------
-//-----------------------------------------
 @Composable
 fun CameraTab() {
     val context = LocalContext.current
-    val photoUris = remember { mutableStateListOf<Uri>() }
 
-    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    // 📁 폴더 목록
+    val folders = remember { mutableStateListOf<File>() }
+    var currentFolder by remember { mutableStateOf<File?>(null) }
+
+    // 🖼️ 사진 목록
+    val photoUris = remember { mutableStateListOf<Uri>() }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
 
-    // 앱 시작 시 기존 사진 로드
+    // 📸 카메라
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    // ➕ 폴더 생성 다이얼로그
+    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+
+    /** 앱 시작 시 폴더 로드 */
     LaunchedEffect(Unit) {
+        folders.clear()
         context.filesDir.listFiles()
-            ?.filter { it.name.startsWith("photo_") }
-            ?.forEach { file ->
-                photoUris.add(Uri.fromFile(file))
-            }
+            ?.filter { it.isDirectory }
+            ?.forEach { folders.add(it) }
     }
 
+    /** 사진 Uri 생성 (선택된 폴더에 저장) */
     fun createPhotoUri(): Uri {
-        val file = File(
-            context.filesDir,
-            "photo_${System.currentTimeMillis()}.jpg"
-        )
+        val dir = currentFolder ?: context.filesDir
+        val file = File(dir, "photo_${System.currentTimeMillis()}.jpg")
         return FileProvider.getUriForFile(
             context,
             "com.example.myapplication.fileprovider",
@@ -719,10 +730,9 @@ fun CameraTab() {
         )
     }
 
+    /** 카메라 런처 */
     val cameraLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.TakePicture()
-        ) { success ->
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success) {
                 tempPhotoUri?.let { uri ->
                     photoUris.add(uri)
@@ -730,10 +740,9 @@ fun CameraTab() {
             }
         }
 
+    /** 권한 요청 */
     val permissionLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { granted ->
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
                 val uri = createPhotoUri()
                 tempPhotoUri = uri
@@ -742,52 +751,102 @@ fun CameraTab() {
         }
 
     Box(modifier = Modifier.fillMaxSize()) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
-            Text("여행 사진 기록", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
+            // 🔤 상단 타이틀 (폴더 안이면 폴더 이름)
+            Text(
+                text = currentFolder?.name ?: "여행 사진 기록",
+                fontSize = if (currentFolder == null) 26.sp else 22.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(photoUris.chunked(2)) { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(160.dp)
-                                    .clickable { selectedUri = uri }
-                            )
+            Spacer(Modifier.height(16.dp))
+
+            /** 🔙 폴더 안일 때 뒤로가기 */
+            if (currentFolder != null) {
+                OutlinedButton(onClick = {
+                    currentFolder = null
+                    photoUris.clear()
+                }) {
+                    Text("📂 폴더 목록")
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+
+            /** 📁 폴더 목록 (2x2 그리드) */
+            if (currentFolder == null) {
+
+                Button(onClick = { showCreateFolderDialog = true }) {
+                    Text("➕ 폴더 만들기")
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(folders) { folder ->
+                        FolderGridItem(folder = folder) {
+                            currentFolder = folder
+                            photoUris.clear()
+                            folder.listFiles()
+                                ?.filter { it.isFile }
+                                ?.forEach {
+                                    photoUris.add(Uri.fromFile(it))
+                                }
                         }
-                        if (row.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            /** 🖼️ 사진 목록 */
+            else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(photoUris.chunked(2)) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { uri ->
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(160.dp)
+                                        .clickable { selectedUri = uri },
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
 
-        Button(
-            onClick = {
-                permissionLauncher.launch(Manifest.permission.CAMERA)
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(20.dp)
-                .fillMaxWidth()
-                .height(56.dp)
-        ) {
-            Text("📸 사진 찍기", fontSize = 18.sp)
+        /** 📸 촬영 버튼 (폴더 안에서만) */
+        if (currentFolder != null) {
+            Button(
+                onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(20.dp)
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("📸 사진 찍기", fontSize = 18.sp)
+            }
         }
     }
 
+    /** 🔍 사진 크게 보기 + 삭제 */
     selectedUri?.let { uri ->
         Dialog(onDismissRequest = { selectedUri = null }) {
             Box(
@@ -802,22 +861,122 @@ fun CameraTab() {
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.75f)
+                            .fillMaxHeight(0.75f),
+                        contentScale = ContentScale.Fit
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
                     Button(
                         onClick = {
                             File(uri.path!!).delete()
                             photoUris.remove(uri)
                             selectedUri = null
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF44336L),
+                            contentColor = Color.White
+                        )
                     ) {
                         Text("삭제")
                     }
+
                 }
             }
         }
     }
+
+    /** ➕ 폴더 생성 다이얼로그 */
+    if (showCreateFolderDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateFolderDialog = false },
+            title = { Text("새 폴더 생성") },
+            text = {
+                TextField(
+                    value = newFolderName,
+                    onValueChange = { newFolderName = it },
+                    placeholder = { Text("예: 도쿄 1일차") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newFolderName.isNotBlank()) {
+                        val folder = File(context.filesDir, newFolderName)
+                        if (!folder.exists()) {
+                            folder.mkdirs()
+                            folders.add(folder)
+                        }
+                    }
+                    newFolderName = ""
+                    showCreateFolderDialog = false
+                }) {
+                    Text("생성")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateFolderDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
 }
+// 📸 폴더 썸네일 (첫 번째 사진)
+fun folderThumbnail(folder: File): Uri? {
+    return folder.listFiles()
+        ?.firstOrNull { it.isFile }
+        ?.let { Uri.fromFile(it) }
+}
+
+@Composable
+fun FolderGridItem(
+    folder: File,
+    onClick: () -> Unit
+) {
+    val thumbnail = remember(folder) { folderThumbnail(folder) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                if (thumbnail != null) {
+                    AsyncImage(
+                        model = thumbnail,
+                        contentDescription = folder.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFECEFF1)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No\nImage", textAlign = TextAlign.Center, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Text(
+                text = folder.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
