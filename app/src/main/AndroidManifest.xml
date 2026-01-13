@@ -15,6 +15,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/places_api_key" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.example.myapplication.fileprovider"

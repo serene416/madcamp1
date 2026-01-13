@@ -7,6 +7,7 @@ data class PlacesResponse(
 )
 
 data class PlaceResult(
+    val place_id: String? = null, // place_id 필드 추가
     val name: String? = null,
     val rating: Double? = null,
     val user_ratings_total: Int? = null,

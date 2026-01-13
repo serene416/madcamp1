@@ -1,12 +1,10 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,6 +12,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,13 +31,43 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Recommend
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -37,24 +77,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.myapplication.data.City
 import com.example.myapplication.data.DayPlan
-import com.example.myapplication.data.SpotDetail
 import com.example.myapplication.data.TripLength
 import com.example.myapplication.data.TripPlan
-import com.example.myapplication.ui.theme.MyApplicationTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import com.example.myapplication.data.TripPlanFactory
-import com.example.myapplication.network.PlacesClient
-import kotlinx.coroutines.launch
-import com.example.myapplication.ui.tab2.RestaurantListScreen
 import com.example.myapplication.data.toLatLng
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
+import com.example.myapplication.network.placePhotoUrl
+import com.example.myapplication.ui.tab2.MapScreen
+import com.example.myapplication.ui.tab2.RestaurantListScreen
 import com.example.myapplication.ui.tab2.SpotRestaurantViewModel
 import com.example.myapplication.network.placePhotoUrl
 import com.example.myapplication.ui.tab2.SpotRestaurantUiState
@@ -63,15 +97,31 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.graphics.Color.Companion.White
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.google.android.gms.maps.MapsInitializer
+import kotlinx.coroutines.launch
+import java.io.File
+import com.example.myapplication.ui.bottomui.BottomNavBarOverlay
+import com.example.myapplication.ui.bottomui.BottomTab
+import com.example.myapplication.ui.bottomui.TabContent
+import androidx.compose.runtime.saveable.rememberSaveable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch {
+            MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LEGACY, null)
+        }
+
         setContent {
             MyApplicationTheme {
                 App()
@@ -80,55 +130,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class BottomTab { FIRST, SECOND, THIRD }
-
 @Composable
 private fun App() {
-    var currentTab by remember { mutableStateOf(BottomTab.FIRST) }
-    val imagesList = remember { mutableStateListOf<Bitmap>() }
+    var currentTab by rememberSaveable { mutableStateOf(com.example.myapplication.ui.bottomui.BottomTab.FIRST) }
 
     Scaffold(
+        containerColor = Color.Transparent, // 1. Scaffold 배경을 투명하게 만듭니다.
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = currentTab == BottomTab.FIRST,
-                    onClick = { currentTab = BottomTab.FIRST },
-                    icon = { Text("📄") },
-                    label = { Text("추천") }
-                )
-                NavigationBarItem(
-                    selected = currentTab == BottomTab.SECOND,
-                    onClick = { currentTab = BottomTab.SECOND },
-                    icon = { Text("🧭") },
-                    label = { Text("경로") }
-                )
-                NavigationBarItem(
-                    selected = currentTab == BottomTab.THIRD,
-                    onClick = { currentTab = BottomTab.THIRD },
-                    icon = { Text("📸") },
-                    label = { Text("사진") }
-                )
-            }
+            BottomNavBarOverlay(
+                currentTab = currentTab,
+                onTabSelected = { currentTab = it }
+            )
         }
     ) { innerPadding ->
-        Box(
+        // 2. 콘텐츠 영역에만 배경색을 지정하고 Scaffold가 계산한 패딩을 적용합니다.
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
         ) {
-            when (currentTab) {
-                BottomTab.FIRST -> FirstTabQuestionFlow()
-                BottomTab.SECOND -> SecondTab()
-                BottomTab.THIRD -> CameraTab()
-            }
+            TabContent(currentTab)
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(title, fontSize = 20.sp)
     }
 }
 
@@ -367,7 +390,7 @@ fun QuestionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
-elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -440,19 +463,14 @@ fun SecondTab() {
     var selectedCity by remember { mutableStateOf<City?>(null) }
     var selectedLength by remember { mutableStateOf<TripLength?>(null) }
     var tripPlan by remember { mutableStateOf<TripPlan?>(null) }
-
-    // 맛집 화면으로 전환할지 여부
     var showRestaurants by remember { mutableStateOf(false) }
 
-    // 스낵바 상태
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-
-        // 1) 맛집 화면 (도시 선택 상태 필요)
         if (showRestaurants) {
             val city = selectedCity ?: return@Scaffold
             val ll = city.toLatLng()
@@ -466,7 +484,6 @@ fun SecondTab() {
             return@Scaffold
         }
 
-        // 2) 루트(관광지) 화면: 아직 계획 없으면 선택 화면, 있으면 DayPager
         if (tripPlan == null) {
             SelectionScreen(
                 modifier = Modifier.padding(padding),
@@ -474,30 +491,23 @@ fun SecondTab() {
                 selectedLength = selectedLength,
                 onSelectCity = { selectedCity = it },
                 onSelectLength = { selectedLength = it },
-
-                onGoNext = onGoNext@{
-                    // 1) 도시 미선택 방지
+                onGoNext = {
                     if (selectedCity == null) {
                         scope.launch { snackbarHostState.showSnackbar("도시를 골라주세요") }
-                        return@onGoNext
+                        return@SelectionScreen
                     }
-                    // 2) 기간 미선택 방지
                     if (selectedLength == null) {
                         scope.launch { snackbarHostState.showSnackbar("기간을 골라주세요") }
-                        return@onGoNext
+                        return@SelectionScreen
                     }
-
-                    // 둘 다 선택된 경우에만 다음으로
                     val city = selectedCity!!
                     val length = selectedLength!!
                     tripPlan = TripPlanFactory.create(city, length)
                 },
-
-                onGoRestaurants = onGoRestaurants@{
-                    // 도시 미선택이면 막기
+                onGoRestaurants = {
                     if (selectedCity == null) {
                         scope.launch { snackbarHostState.showSnackbar("도시를 먼저 골라주세요") }
-                        return@onGoRestaurants
+                        return@SelectionScreen
                     }
                     showRestaurants = true
                 }
@@ -521,8 +531,6 @@ fun SelectionScreen(
     onGoNext: () -> Unit,
     onGoRestaurants: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -555,28 +563,39 @@ fun SelectionScreen(
 
         Button(
             onClick = onGoNext,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
             enabled = selectedLength != null && selectedCity != null
-        ) { Text("루트 보기") }
-
-
+        ) { Text("루트 보기", fontSize = 16.sp) }
     }
 }
 
-@Composable // 하루치 페이지 하나
+@Composable
 fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { plan.days.size })
+    var showMap by remember { mutableStateOf(false) }
+
+    if (showMap) {
+        MapScreen(plan = plan, onBack = { showMap = false })
+        return
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = onBack) {
+                Text("뒤로")
+            }
             Text("${plan.city.name} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            OutlinedButton(onClick = onBack) { Text("뒤로") }
+            IconButton(onClick = { showMap = true }) {
+                Icon(Icons.Filled.Map, contentDescription = "지도 보기")
+            }
         }
 
         HorizontalPager(
@@ -634,17 +653,18 @@ fun DayDetailPage(dayPlan: DayPlan) {
 
                     Text(spot.description, fontSize = 14.sp)
 
-                    // ✅ 여기부터 맛집 섹션
-                    Divider()
+                    HorizontalDivider()
                     Text("주변 맛집 1곳", fontWeight = FontWeight.Bold)
 
                     when {
                         state.loading.contains(spotKey) -> {
                             CircularProgressIndicator(modifier = Modifier.size(22.dp))
                         }
+
                         state.error[spotKey] != null -> {
                             Text("불러오기 실패: ${state.error[spotKey]}")
                         }
+
                         else -> {
                             val r = state.data[spotKey]
                             if (r == null) Text("근처 맛집 결과가 없습니다.")
@@ -659,10 +679,26 @@ fun DayDetailPage(dayPlan: DayPlan) {
 
 @Composable
 private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) {
+    val context = LocalContext.current
     val photoRef = r.photos?.firstOrNull()?.photo_reference
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = r.place_id != null) {
+                r.place_id?.let { placeId ->
+                    val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(r.name)}&query_place_id=$placeId")
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    intent.setPackage("com.google.android.apps.maps")
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // Fallback if Google Maps is not installed
+                        val webIntent = Intent(Intent.ACTION_VIEW, uri)
+                        context.startActivity(webIntent)
+                    }
+                }
+            },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -694,7 +730,7 @@ private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) 
                 fontSize = 12.sp
             )
             if (!r.vicinity.isNullOrBlank()) {
-                Text(r.vicinity!!, fontSize = 12.sp)
+                Text(r.vicinity, fontSize = 12.sp)
             }
         }
     }
