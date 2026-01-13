@@ -25,7 +25,7 @@ val fukuoka = listOf(
     Place("긴린코 호수", 33.2666, 131.3126, "유후인-온천"),
     Place("하카타역·JR 하카타시티", 33.5902, 130.4206, "후쿠오카-하카타"),
     Place("나카스 야타이 거리", 33.5941, 130.4088, "후쿠오카-하카타"),
-    Place("유후인(당일치기)", 33.2634, 131.3236, "유후인-온천"),
+    Place("유후인", 33.2634, 131.3236, "유후인-온천"),
 )
 
 
@@ -91,7 +91,7 @@ fun buildFukuokaPlan(length: TripLength): TripPlan {
                         R.drawable.fukuoka_dazaifu
                     ),
                     s(
-                        "유후인(당일치기)",
+                        "유후인",
                         "후쿠오카에서 하루를 빼 다녀오기 좋은 대표 근교 여행지입니다.\n자연과 온천 분위기 속에서 여행의 결이 한층 깊어집니다.",
                         R.drawable.fukuoka_yufuin
                     )
@@ -140,7 +140,7 @@ fun buildFukuokaPlan(length: TripLength): TripPlan {
             DayPlan(
                 4, listOf(
                     s(
-                        "유후인(당일치기)",
+                        "유후인",
                         "후쿠오카에서 가장 인기 있는 근교 여행 코스입니다.\n자연 풍경과 온천 분위기가 여행의 색을 크게 바꿔줍니다.",
                         R.drawable.fukuoka_yufuin
                     )
@@ -198,7 +198,7 @@ fun buildFukuokaPlan(length: TripLength): TripPlan {
             DayPlan(
                 4, listOf(
                     s(
-                        "유후인(당일치기)",
+                        "유후인",
                         "자연과 온천 분위기를 함께 느낄 수 있는 대표 근교 코스입니다.\n하루만 다녀와도 여행의 분위기가 크게 바뀝니다.",
                         R.drawable.fukuoka_yufuin
                     )
