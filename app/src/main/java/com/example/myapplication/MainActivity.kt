@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -62,6 +63,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.graphics.Color.Companion.White
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -361,7 +367,7 @@ fun QuestionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
-        elevation = CardDefaults.cardElevation(6.dp)
+elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -563,7 +569,9 @@ fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -707,9 +715,13 @@ fun CameraTab() {
     // 📸 카메라
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-    // ➕ 폴더 생성 다이얼로그
+    // ➕ 폴더 생성
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+
+    // 🗑️ 폴더 삭제
+    var folderToDelete by remember { mutableStateOf<File?>(null) }
+    var showDeleteFolderDialog by remember { mutableStateOf(false) }
 
     /** 앱 시작 시 폴더 로드 */
     LaunchedEffect(Unit) {
@@ -719,7 +731,7 @@ fun CameraTab() {
             ?.forEach { folders.add(it) }
     }
 
-    /** 사진 Uri 생성 (선택된 폴더에 저장) */
+    /** 사진 URI 생성 */
     fun createPhotoUri(): Uri {
         val dir = currentFolder ?: context.filesDir
         val file = File(dir, "photo_${System.currentTimeMillis()}.jpg")
@@ -734,9 +746,7 @@ fun CameraTab() {
     val cameraLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success) {
-                tempPhotoUri?.let { uri ->
-                    photoUris.add(uri)
-                }
+                tempPhotoUri?.let { photoUris.add(it) }
             }
         }
 
@@ -757,31 +767,23 @@ fun CameraTab() {
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
-            // 🔤 상단 타이틀 (폴더 안이면 폴더 이름)
             Text(
                 text = currentFolder?.name ?: "여행 사진 기록",
-                fontSize = if (currentFolder == null) 26.sp else 22.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(Modifier.height(16.dp))
 
-            /** 🔙 폴더 안일 때 뒤로가기 */
-            if (currentFolder != null) {
-                OutlinedButton(onClick = {
-                    currentFolder = null
-                    photoUris.clear()
-                }) {
-                    Text("📂 폴더 목록")
-                }
-                Spacer(Modifier.height(12.dp))
-            }
-
-            /** 📁 폴더 목록 (2x2 그리드) */
             if (currentFolder == null) {
 
-                Button(onClick = { showCreateFolderDialog = true }) {
-                    Text("➕ 폴더 만들기")
+                Button(
+                    onClick = { showCreateFolderDialog = true },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("폴더 만들기")
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -789,138 +791,178 @@ fun CameraTab() {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(folders) { folder ->
-                        FolderGridItem(folder = folder) {
-                            currentFolder = folder
-                            photoUris.clear()
-                            folder.listFiles()
-                                ?.filter { it.isFile }
-                                ?.forEach {
+                        FolderGridItem(
+                            folder = folder,
+                            onClick = {
+                                currentFolder = folder
+                                photoUris.clear()
+                                folder.listFiles()?.forEach {
                                     photoUris.add(Uri.fromFile(it))
                                 }
-                        }
+                            },
+                            onLongClick = {
+                                folderToDelete = folder
+                                showDeleteFolderDialog = true
+                            }
+                        )
                     }
                 }
-            }
-            /** 🖼️ 사진 목록 */
-            else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+
+            } else {
+
+                OutlinedButton(onClick = {
+                    currentFolder = null
+                    photoUris.clear()
+                }) {
+                    Icon(Icons.Default.ArrowBack, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("폴더 목록")
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(photoUris.chunked(2)) { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { uri ->
-                                AsyncImage(
-                                    model = uri,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(160.dp)
-                                        .clickable { selectedUri = uri },
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
-                        }
+                    items(photoUris) { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { selectedUri = uri },
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
             }
         }
 
-        /** 📸 촬영 버튼 (폴더 안에서만) */
+        /** 📸 FAB */
         if (currentFolder != null) {
-            Button(
+            FloatingActionButton(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(20.dp)
-                    .fillMaxWidth()
-                    .height(56.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Text("📸 사진 찍기", fontSize = 18.sp)
+                Icon(Icons.Default.CameraAlt, null)
             }
         }
-    }
 
-    /** 🔍 사진 크게 보기 + 삭제 */
-    selectedUri?.let { uri ->
-        Dialog(onDismissRequest = { selectedUri = null }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.85f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.75f),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            File(uri.path!!).delete()
-                            photoUris.remove(uri)
-                            selectedUri = null
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336L),
-                            contentColor = Color.White
+        /** 🔍 사진 크게 보기 + 삭제 */
+        selectedUri?.let { uri ->
+            Dialog(onDismissRequest = { selectedUri = null }) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.9f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.75f),
+                            contentScale = ContentScale.Fit
                         )
-                    ) {
-                        Text("삭제")
-                    }
 
+                        Spacer(Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                File(uri.path!!).delete()
+                                photoUris.remove(uri)
+                                selectedUri = null
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF44336),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("삭제")
+                        }
+                    }
                 }
             }
         }
-    }
 
-    /** ➕ 폴더 생성 다이얼로그 */
-    if (showCreateFolderDialog) {
-        AlertDialog(
-            onDismissRequest = { showCreateFolderDialog = false },
-            title = { Text("새 폴더 생성") },
-            text = {
-                TextField(
-                    value = newFolderName,
-                    onValueChange = { newFolderName = it },
-                    placeholder = { Text("예: 도쿄 1일차") }
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (newFolderName.isNotBlank()) {
-                        val folder = File(context.filesDir, newFolderName)
-                        if (!folder.exists()) {
+        /** ➕ 폴더 생성 다이얼로그 */
+        if (showCreateFolderDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreateFolderDialog = false },
+                title = { Text("새 폴더") },
+                text = {
+                    OutlinedTextField(
+                        value = newFolderName,
+                        onValueChange = { newFolderName = it },
+                        placeholder = { Text("예: 도쿄 1일차") }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (newFolderName.isNotBlank()) {
+                            val folder = File(context.filesDir, newFolderName)
                             folder.mkdirs()
                             folders.add(folder)
                         }
+                        newFolderName = ""
+                        showCreateFolderDialog = false
+                    }) { Text("생성") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreateFolderDialog = false }) {
+                        Text("취소")
                     }
-                    newFolderName = ""
-                    showCreateFolderDialog = false
-                }) {
-                    Text("생성")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateFolderDialog = false }) {
-                    Text("취소")
+            )
+        }
+
+        /** 🗑️ 폴더 삭제 다이얼로그 */
+        if (showDeleteFolderDialog && folderToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteFolderDialog = false },
+                title = { Text("폴더 삭제") },
+                text = {
+                    Text("정말 \"${folderToDelete!!.name}\" 폴더를 삭제할까요?\n사진도 함께 삭제됩니다.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        folderToDelete!!.deleteRecursively()
+                        folders.remove(folderToDelete)
+                        folderToDelete = null
+                        showDeleteFolderDialog = false
+                    }) {
+                        Text("삭제", color = Color(0xFFF44336))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        folderToDelete = null
+                        showDeleteFolderDialog = false
+                    }) {
+                        Text("취소")
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }
+
+
+
 // 📸 폴더 썸네일 (첫 번째 사진)
 fun folderThumbnail(folder: File): Uri? {
     return folder.listFiles()
@@ -931,52 +973,50 @@ fun folderThumbnail(folder: File): Uri? {
 @Composable
 fun FolderGridItem(
     folder: File,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    val thumbnail = remember(folder) { folderThumbnail(folder) }
+    val thumbnail = folder.listFiles()?.firstOrNull()?.let { Uri.fromFile(it) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
+            Box(Modifier.weight(1f)) {
                 if (thumbnail != null) {
                     AsyncImage(
                         model = thumbnail,
-                        contentDescription = folder.name,
+                        contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxSize()
                             .background(Color(0xFFECEFF1)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No\nImage", textAlign = TextAlign.Center, fontSize = 12.sp)
+                        Icon(Icons.Default.Image, null)
                     }
                 }
             }
-
             Text(
-                text = folder.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
+                folder.name,
+                modifier = Modifier.padding(8.dp),
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
+
 
