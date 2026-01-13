@@ -4,7 +4,10 @@
 /local.properties
 
 .idea/
-.DS_Store
+*.iml
+local.properties
+/build
+/app/build
 
 /build/
 **/build/
