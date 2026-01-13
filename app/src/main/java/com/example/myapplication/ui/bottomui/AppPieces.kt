@@ -12,9 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.FirstTabQuestionFlow
-import com.example.myapplication.SecondTab
-import com.example.myapplication.CameraTab
+import com.example.myapplication.ui.tab1.FirstTabQuestionFlow
+import com.example.myapplication.ui.tab2.SecondTab
+import com.example.myapplication.ui.tab3.CameraTab
 
 enum class BottomTab { FIRST, SECOND, THIRD }
 
