@@ -30,6 +30,7 @@ android {
 
         buildConfigField("String", "PLACES_API_KEY", "\"$placesApiKey\"")
         buildConfigField("String", "PLACES_BASE_URL", "\"$placesBaseUrl\"")
+        resValue("string", "places_api_key", placesApiKey)
 
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -67,6 +68,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Coil (이미지 로딩)
     implementation("io.coil-kt:coil-compose:2.7.0")
@@ -89,10 +91,11 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     implementation("androidx.compose.material:material-icons-extended")
-    implementation(libs.androidx.compose.foundation)
 
 
 
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
