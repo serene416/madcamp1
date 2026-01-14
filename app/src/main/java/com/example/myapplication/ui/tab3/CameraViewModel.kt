@@ -66,10 +66,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(selectedUri = uri) }
     }
 
-    /** 사진 촬영 후 추가 */
+    /** 사진 촬영 후 순서대로 추가 */
     fun addCapturedPhoto(uri: Uri) {
-        _uiState.update { it.copy(photoUris = it.photoUris + uri) }
+        _uiState.update {
+            it.copy(photoUris = listOf(uri) + it.photoUris)
+        }
     }
+
 
     // ================= 폴더 생성 =================
 
