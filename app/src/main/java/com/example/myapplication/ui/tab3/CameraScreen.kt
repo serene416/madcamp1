@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -18,14 +19,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import java.io.File
 import com.example.myapplication.ui.theme.AppStyle
-import androidx.compose.ui.graphics.Color
+
 
 @Composable
 fun CameraScreen(vm: CameraViewModel) {
@@ -37,6 +42,7 @@ fun CameraScreen(vm: CameraViewModel) {
         vm.loadInitial()
     }
 
+    // 카메라/권한 런처는 UI에 남겨도 됨(시스템 연동)
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher =
@@ -164,8 +170,8 @@ fun CameraScreen(vm: CameraViewModel) {
             }
         }
 
-        // ================== FAB ==================
-        if (state.currentFolder != null) {
+        // FAB
+        if(state.currentFolder != null) {
             FloatingActionButton(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier
@@ -224,3 +230,5 @@ fun CameraScreen(vm: CameraViewModel) {
         }
     }
 }
+
+
