@@ -1,3 +1,4 @@
+
 package com.example.myapplication.ui.tab3
 ///ui수정여기
 import android.net.Uri
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.myapplication.ui.theme.AppStyle
 import java.io.File
 
 @Composable
@@ -50,7 +52,7 @@ fun FolderGridItem(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(androidx.compose.ui.graphics.Color(0xFFECEFF1)),
+                            .background(AppStyle.Colors.placeholder),
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Default.Image, null) }
                 }

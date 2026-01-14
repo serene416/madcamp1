@@ -59,45 +59,36 @@ android {
 }
 
 dependencies {
+    // 코어 & 생명주기
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
+    // Compose BOM (버전 관리)
     implementation(platform(libs.androidx.compose.bom))
+
+    // Compose UI
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
 
-    // Coil (이미지 로딩)
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // Retrofit (API 호출 도구)
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    // JSON -> Kotlin 객체 변환기 (Gson)
-    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-    // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    // OkHttp Logging
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
-
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-
-    implementation("com.google.android.material:material:1.11.0")
-
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
+    // Compose Material & 아이콘 (버전 명시적으로 지정)
+    implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("com.google.android.material:material:1.12.0")
+    // 기타 라이브러리
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-
-
+    // Google Maps
     implementation("com.google.maps.android:maps-compose:4.3.3")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
-    implementation(libs.androidx.material3)
+
+    // 테스트
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

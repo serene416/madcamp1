@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import java.io.File
+import com.example.myapplication.ui.theme.AppStyle
 
 @Composable
 fun CameraScreen(
@@ -76,7 +77,12 @@ fun CameraScreen(
 
                 Button(
                     onClick = { vm.showCreateDialog(true) },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppStyle.Colors.primary,
+                        contentColor = Color.Black
+                    ),
+
                 ) {
                     Icon(Icons.Default.Add, null)
                     Spacer(Modifier.width(8.dp))
@@ -130,17 +136,17 @@ fun CameraScreen(
         }
 
         // FAB
-        if (state.currentFolder != null) {
             FloatingActionButton(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(24.dp),
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = AppStyle.Colors.primary,
+                contentColor = Color.Black
             ) {
                 Icon(Icons.Default.CameraAlt, null)
             }
-        }
+
 
         // 사진 확대 + 삭제
         state.selectedUri?.let { uri ->

@@ -21,6 +21,9 @@ fun SecondTab() {
     var tripPlan by remember { mutableStateOf<TripPlan?>(null) }
     var showRestaurants by remember { mutableStateOf(false) }
 
+    // ✅ DayPagerScreen 진입 시 스낵바 1회 띄우기용 플래그
+    var showSwipeHintOnce by remember { mutableStateOf(false) }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -56,8 +59,14 @@ fun SecondTab() {
                         scope.launch { snackbarHostState.showSnackbar("기간을 골라주세요") }
                         return@SelectionScreen
                     }
+
                     val city = selectedCity!!
                     val length = selectedLength!!
+
+                    // ✅ 다음 화면으로 넘어가면서 스낵바 1회 띄우도록 예약
+                    showSwipeHintOnce = true
+
+                    // ✅ 바로 DayPagerScreen으로 전환
                     tripPlan = TripPlanFactory.create(city, length)
                 },
                 onGoRestaurants = {
@@ -69,9 +78,21 @@ fun SecondTab() {
                 }
             )
         } else {
+            // ✅ DayPagerScreen "진입 직후" 1회만 스낵바 표시
+            LaunchedEffect(showSwipeHintOnce) {
+                if (showSwipeHintOnce) {
+                    snackbarHostState.showSnackbar("옆으로 스와이프해서 일정을 살펴보세요")
+                    showSwipeHintOnce = false
+                }
+            }
+
             DayPagerScreen(
                 plan = tripPlan!!,
-                onBack = { tripPlan = null }
+                onBack = {
+                    tripPlan = null
+                    // (선택) 뒤로 갈 때 플래그도 초기화하고 싶으면 아래 유지
+                    // showSwipeHintOnce = false
+                }
             )
         }
     }
