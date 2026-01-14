@@ -22,7 +22,7 @@ data class CameraUiState(
     val showDeleteFolderDialog: Boolean = false,
     val folderToDelete: File? = null,
 
-    // ⭐ 썸네일 설정
+    // 썸네일 설정
     val showThumbnailDialog: Boolean = false,
     val thumbnailCandidate: Uri? = null
 )
@@ -66,13 +66,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(selectedUri = uri) }
     }
 
-    /** 사진 촬영 후 순서대로 추가 */
+    /** 사진 촬영 → 최신 사진이 앞에 오도록 */
     fun addCapturedPhoto(uri: Uri) {
         _uiState.update {
             it.copy(photoUris = listOf(uri) + it.photoUris)
         }
     }
-
 
     // ================= 폴더 생성 =================
 
@@ -85,24 +84,17 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun confirmCreateFolder() {
-        val name = uiState.value.newFolderName
-        val folder = createFolder(context, name)
+        val name = uiState.value.newFolderName.trim()
+        if (name.isBlank()) return
 
-        _uiState.update { cur ->
-            if (folder == null) {
-                cur.copy(
-                    newFolderName = "",
-                    showCreateFolderDialog = false
-                )
-            } else {
-                cur.copy(
-                    folders = (cur.folders + folder)
-                        .distinctBy { it.absolutePath }
-                        .sortedBy { it.name },
-                    newFolderName = "",
-                    showCreateFolderDialog = false
-                )
-            }
+        createFolder(context, name)
+
+        _uiState.update {
+            it.copy(
+                folders = loadFolders(context),
+                newFolderName = "",
+                showCreateFolderDialog = false
+            )
         }
     }
 
@@ -130,11 +122,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         val target = uiState.value.folderToDelete ?: return
         deleteFolder(target)
 
-        _uiState.update { cur ->
-            cur.copy(
-                folders = cur.folders.filterNot {
-                    it.absolutePath == target.absolutePath
-                },
+        _uiState.update {
+            it.copy(
+                folders = loadFolders(context),
                 folderToDelete = null,
                 showDeleteFolderDialog = false,
                 currentFolder = null,
@@ -148,21 +138,17 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deleteSelectedPhoto() {
         val uri = uiState.value.selectedUri ?: return
-        val ok = deletePhoto(uri)
+        deletePhoto(uri)
 
-        _uiState.update { cur ->
-            if (ok) {
-                cur.copy(
-                    photoUris = cur.photoUris.filterNot { it == uri },
-                    selectedUri = null
-                )
-            } else {
-                cur.copy(selectedUri = null)
-            }
+        _uiState.update {
+            it.copy(
+                photoUris = it.photoUris.filterNot { u -> u == uri },
+                selectedUri = null
+            )
         }
     }
 
-    // ================= ⭐ 썸네일 설정 =================
+    // ================= 썸네일 설정 =================
 
     fun askSetThumbnail(uri: Uri) {
         _uiState.update {

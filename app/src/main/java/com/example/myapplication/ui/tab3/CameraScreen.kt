@@ -24,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import java.io.File
 import com.example.myapplication.ui.theme.AppStyle
 import androidx.compose.ui.graphics.Color
 
@@ -34,13 +33,17 @@ fun CameraScreen(vm: CameraViewModel) {
     val context = LocalContext.current
     val state by vm.uiState.collectAsState()
 
-    LaunchedEffect(Unit) { vm.loadInitial() }
+    LaunchedEffect(Unit) {
+        vm.loadInitial()
+    }
 
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-            if (success) tempPhotoUri?.let(vm::addCapturedPhoto)
+            if (success) {
+                tempPhotoUri?.let(vm::addCapturedPhoto)
+            }
         }
 
     val permissionLauncher =
@@ -69,6 +72,7 @@ fun CameraScreen(vm: CameraViewModel) {
 
             Spacer(Modifier.height(16.dp))
 
+            /** ================== 폴더 목록 화면 ================== */
             if (state.currentFolder == null) {
 
                 Button(
@@ -77,9 +81,8 @@ fun CameraScreen(vm: CameraViewModel) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppStyle.Colors.primary,
                         contentColor = Color.Black
-                    ),
-
-                    ) {
+                    )
+                ) {
                     Icon(Icons.Default.Add, null)
                     Spacer(Modifier.width(8.dp))
                     Text("폴더 만들기")
@@ -102,6 +105,8 @@ fun CameraScreen(vm: CameraViewModel) {
                 }
 
             } else {
+
+                /** ================== 사진 목록 화면 ================== */
 
                 OutlinedButton(onClick = { vm.backToFolderList() }) {
                     Icon(Icons.Default.ArrowBack, null)
@@ -159,10 +164,8 @@ fun CameraScreen(vm: CameraViewModel) {
             }
         }
 
-
         // ================== FAB ==================
         if (state.currentFolder != null) {
-            // FAB
             FloatingActionButton(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier
@@ -170,56 +173,54 @@ fun CameraScreen(vm: CameraViewModel) {
                     .padding(24.dp),
                 containerColor = AppStyle.Colors.primary,
                 contentColor = Color.Black
-
             ) {
                 Icon(Icons.Default.CameraAlt, null)
             }
+        }
 
+        // ================== DIALOGS (⚠️ currentFolder 조건 밖) ==================
 
-            // ================== DIALOGS ==================
-            state.selectedUri?.let {
-                PhotoPreviewDialog(
-                    uri = it,
-                    onDismiss = { vm.selectPhoto(null) },
-                    onDelete = { vm.deleteSelectedPhoto() }
-                )
-            }
+        state.selectedUri?.let {
+            PhotoPreviewDialog(
+                uri = it,
+                onDismiss = { vm.selectPhoto(null) },
+                onDelete = { vm.deleteSelectedPhoto() }
+            )
+        }
 
-            if (state.showCreateFolderDialog) {
-                CreateFolderDialog(
-                    folderName = state.newFolderName,
-                    onChange = vm::setNewFolderName,
-                    onDismiss = { vm.showCreateDialog(false) },
-                    onConfirm = { vm.confirmCreateFolder() }
-                )
-            }
+        if (state.showCreateFolderDialog) {
+            CreateFolderDialog(
+                folderName = state.newFolderName,
+                onChange = vm::setNewFolderName,
+                onDismiss = { vm.showCreateDialog(false) },
+                onConfirm = { vm.confirmCreateFolder() }
+            )
+        }
 
-            if (state.showDeleteFolderDialog && state.folderToDelete != null) {
-                DeleteFolderDialog(
-                    folderName = state.folderToDelete!!.name,
-                    onDismiss = { vm.cancelDeleteFolder() },
-                    onConfirm = { vm.confirmDeleteFolder() }
-                )
-            }
+        if (state.showDeleteFolderDialog && state.folderToDelete != null) {
+            DeleteFolderDialog(
+                folderName = state.folderToDelete!!.name,
+                onDismiss = { vm.cancelDeleteFolder() },
+                onConfirm = { vm.confirmDeleteFolder() }
+            )
+        }
 
-            if (state.showThumbnailDialog && state.thumbnailCandidate != null) {
-                AlertDialog(
-                    onDismissRequest = { vm.cancelSetThumbnail() },
-                    title = { Text("대표 사진 설정") },
-                    text = { Text("이 사진을 폴더 대표 이미지로 설정할까요?") },
-                    confirmButton = {
-                        TextButton(onClick = { vm.confirmSetThumbnail() }) {
-                            Text("설정")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { vm.cancelSetThumbnail() }) {
-                            Text("취소")
-                        }
+        if (state.showThumbnailDialog && state.thumbnailCandidate != null) {
+            AlertDialog(
+                onDismissRequest = { vm.cancelSetThumbnail() },
+                title = { Text("대표 사진 설정") },
+                text = { Text("이 사진을 폴더 대표 이미지로 설정할까요?") },
+                confirmButton = {
+                    TextButton(onClick = { vm.confirmSetThumbnail() }) {
+                        Text("설정")
                     }
-                )
-            }
+                },
+                dismissButton = {
+                    TextButton(onClick = { vm.cancelSetThumbnail() }) {
+                        Text("취소")
+                    }
+                }
+            )
         }
     }
 }
-

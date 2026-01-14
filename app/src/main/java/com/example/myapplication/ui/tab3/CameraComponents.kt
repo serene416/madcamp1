@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.myapplication.ui.theme.AppStyle
 import java.io.File
-
 @Composable
 fun FolderGridItem(
     folder: File,
