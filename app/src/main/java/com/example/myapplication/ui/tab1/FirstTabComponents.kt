@@ -1,6 +1,7 @@
-
+// FirstTabComponents.kt
 package com.example.myapplication.ui.tab1
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,8 @@ import com.example.myapplication.ui.theme.AppStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun ProgressDots(stepIndex: Int, totalSteps: Int) {
@@ -40,6 +43,7 @@ fun ProgressDots(stepIndex: Int, totalSteps: Int) {
 @Composable
 fun QuestionCard(
     title: String,
+    catResId: Int,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -52,6 +56,16 @@ fun QuestionCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            Image(
+                painter = painterResource(id = catResId),
+                contentDescription = "question cat",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Fit
+            )
+
             Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             content()
         }
@@ -67,7 +81,7 @@ fun ChoiceCard(text: String, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.surfaceSoft),
         elevation = CardDefaults.cardElevation(4.dp),
-         shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
+        shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Medium)
@@ -81,7 +95,7 @@ fun ResultCard(result: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp),
-         colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.primarySoft),
+        colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.primarySoft),
         elevation = CardDefaults.cardElevation(10.dp),
         shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
     ) {

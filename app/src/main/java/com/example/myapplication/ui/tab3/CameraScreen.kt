@@ -136,6 +136,7 @@ fun CameraScreen(
         }
 
         // FAB
+        if(state.currentFolder != null) {
             FloatingActionButton(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier
@@ -146,6 +147,7 @@ fun CameraScreen(
             ) {
                 Icon(Icons.Default.CameraAlt, null)
             }
+        }
 
 
         // 사진 확대 + 삭제

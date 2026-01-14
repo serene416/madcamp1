@@ -1,3 +1,4 @@
+// FirstTabScreen.kt
 package com.example.myapplication.ui.tab1
 
 import androidx.compose.foundation.layout.*
@@ -8,12 +9,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.R
 
 @Composable
 fun FirstTabScreen(
     state: FirstTabUiState,
     onAction: (FirstTabAction) -> Unit
 ) {
+    // Q1~Q7에 대응하는 고양이 이미지 (stepIndex 0~6)
+    val catByQuestion = listOf(
+        R.drawable.cat_city,      // Q1 도시
+        R.drawable.cat_onsen,     // Q2 온천
+        R.drawable.cat_snow,      // Q3 눈
+        R.drawable.cat_shopping,  // Q4 쇼핑
+        R.drawable.cat_temple,    // Q5 사찰
+        R.drawable.cat_luxury,    // Q6 럭셔리
+        R.drawable.cat_style      // Q7 멋쟁이
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -43,10 +56,15 @@ fun FirstTabScreen(
         ) {
             if (!state.isResult) {
                 val q = state.question ?: return@Box
-                QuestionCard(q.text) {
+                val catResId = catByQuestion.getOrElse(state.stepIndex) { catByQuestion.last() }
+
+                QuestionCard(
+                    title = q.text,
+                    catResId = catResId
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         q.choices.forEach { c ->
-                            ChoiceCard(c.label) {
+                            ChoiceCard(text = c.label) {
                                 onAction(FirstTabAction.SelectChoice(c.id))
                             }
                         }
