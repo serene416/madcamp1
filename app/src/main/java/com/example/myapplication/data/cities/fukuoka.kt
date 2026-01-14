@@ -86,17 +86,18 @@ fun buildFukuokaPlan(length: TripLength): TripPlan {
             DayPlan(
                 3, listOf(
                     s(
-                        "다자이후 텐만구",
-                        "전통적인 분위기 속에서 후쿠오카 근교의 고즈넉함을 느낄 수 있는 대표 명소입니다.\n참배길을 따라 걷는 시간 자체가 여행의 속도를 부드럽게 낮춰줍니다.",
-                        R.drawable.fukuoka_dazaifu
+                        "유후인",
+                        "온천 마을 특유의 여유로운 분위기와 자연 풍경이 인상적인 대표 근교 여행지입니다.\n하카타에서 특급 열차로 이동해 하루를 온전히 보내기에 가장 적합한 코스입니다.",
+                        R.drawable.fukuoka_yufuin
                     ),
                     s(
-                        "유후인",
-                        "후쿠오카에서 하루를 빼 다녀오기 좋은 대표 근교 여행지입니다.\n자연과 온천 분위기 속에서 여행의 결이 한층 깊어집니다.",
-                        R.drawable.fukuoka_yufuin
+                        "긴린코 호수",
+                        "유후인을 대표하는 고요한 호수로, 아침이나 오후 어느 시간에 가도 분위기가 좋습니다.\n잔잔한 물결과 주변 풍경이 여행의 여운을 깊게 남겨줍니다.",
+                        R.drawable.fukuoka_kinrinko
                     )
                 )
             )
+
         )
 
         TripLength.D4_5 -> listOf(

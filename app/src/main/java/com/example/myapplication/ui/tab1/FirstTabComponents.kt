@@ -1,3 +1,4 @@
+
 package com.example.myapplication.ui.tab1
 
 import androidx.compose.foundation.background
@@ -11,7 +12,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import com.example.myapplication.ui.theme.AppStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,7 +30,7 @@ fun ProgressDots(stepIndex: Int, totalSteps: Int) {
                     .size(8.dp)
                     .clip(CircleShape)
                     .background(
-                        color = if (index < filled) MaterialTheme.colorScheme.primary else Color(0xFFB0BEC5)
+                        color = if (index < filled) AppStyle.Colors.primary else AppStyle.Colors.borderSoft
                     )
             )
         }
@@ -43,9 +44,9 @@ fun QuestionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.cardBackground),
         elevation = CardDefaults.cardElevation(6.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -64,9 +65,9 @@ fun ChoiceCard(text: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(60.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F9FF)),
+        colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.surfaceSoft),
         elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(14.dp)
+         shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Medium)
@@ -80,9 +81,9 @@ fun ResultCard(result: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF4FF)),
+         colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.primarySoft),
         elevation = CardDefaults.cardElevation(10.dp),
-        shape = RoundedCornerShape(18.dp)
+        shape = RoundedCornerShape(AppStyle.Dimens.radiusCard)
     ) {
         Column(
             modifier = Modifier

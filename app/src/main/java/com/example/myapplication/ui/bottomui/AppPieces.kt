@@ -1,3 +1,4 @@
+
 package com.example.myapplication.ui.bottomui
 
 import androidx.compose.foundation.layout.*
@@ -15,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.example.myapplication.ui.tab1.FirstTabQuestionFlow
 import com.example.myapplication.ui.tab2.SecondTab
 import com.example.myapplication.ui.tab3.CameraTab
-
+import com.example.myapplication.ui.theme.AppStyle
 enum class BottomTab { FIRST, SECOND, THIRD }
 
 @Composable
@@ -41,7 +42,9 @@ fun BottomNavBarOverlay(
         contentAlignment = Alignment.Center
     ) {
         NavigationBar(
-            modifier = Modifier.clip(RoundedCornerShape(24.dp))
+                     modifier = Modifier.clip(RoundedCornerShape(AppStyle.Dimens.bottomNavRadius)),
+                     containerColor = AppStyle.Colors.bottomNav // 배경색
+
         ) {
             NavigationBarItem(
                 selected = currentTab == BottomTab.FIRST,

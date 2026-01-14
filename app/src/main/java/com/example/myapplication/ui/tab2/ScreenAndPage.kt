@@ -2,42 +2,21 @@ package com.example.myapplication.ui.tab2
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,9 +35,8 @@ import com.example.myapplication.data.DayPlan
 import com.example.myapplication.data.TripLength
 import com.example.myapplication.data.TripPlan
 import com.example.myapplication.network.placePhotoUrl
-import com.example.myapplication.ui.tab2.MapScreen
-import com.example.myapplication.ui.tab2.SpotRestaurantViewModel
-
+import com.example.myapplication.ui.theme.AppStyle
+import androidx.compose.foundation.BorderStroke
 @Composable
 fun SelectionScreen(
     modifier: Modifier = Modifier,
@@ -69,31 +47,44 @@ fun SelectionScreen(
     onGoNext: () -> Unit,
     onGoRestaurants: () -> Unit,
 ) {
+    val chipItems = listOf(
+        TripLength.D3_4 to "3~4일",
+        TripLength.D4_5 to "4~5일",
+        TripLength.D5_6 to "5~6일",
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(AppStyle.Dimens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(AppStyle.Dimens.sectionGap)
     ) {
-        Text("기간 선택", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        SectionTitle("기간 선택")
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = selectedLength == TripLength.D3_4, onClick = { onSelectLength(TripLength.D3_4) }, label = { Text("3~4일") })
-            FilterChip(selected = selectedLength == TripLength.D4_5, onClick = { onSelectLength(TripLength.D4_5) }, label = { Text("4~5일") })
-            FilterChip(selected = selectedLength == TripLength.D5_6, onClick = { onSelectLength(TripLength.D5_6) }, label = { Text("5~6일") })
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppStyle.Dimens.itemGap)
+        ) {
+            chipItems.forEach { (length, label) ->
+                LengthChip(
+                    modifier = Modifier.weight(1f),
+                    text = label,
+                    selected = selectedLength == length,
+                    onClick = { onSelectLength(length) }
+                )
+            }
         }
 
-        Spacer(Modifier.height(8.dp))
-        Text("도시 선택", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        SectionTitle("도시 선택")
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppStyle.Dimens.itemGap)) {
             City.values().forEach { city ->
-                ElevatedButton(
-                    onClick = { onSelectCity(city) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (selectedCity == city) "✓ ${city.name}" else city.name)
-                }
+                SelectPillButton(
+                    text = city.name,
+                    selected = selectedCity == city,
+                    onClick = { onSelectCity(city) }
+                )
             }
         }
 
@@ -103,9 +94,18 @@ fun SelectionScreen(
             onClick = onGoNext,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            enabled = selectedLength != null && selectedCity != null
-        ) { Text("루트 보기", fontSize = 16.sp) }
+                .height(AppStyle.Dimens.ctaHeight),
+            enabled = selectedLength != null && selectedCity != null,
+            shape = RoundedCornerShape(AppStyle.Dimens.radiusCard),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppStyle.Colors.primary,
+                contentColor = Color.Black,
+                disabledContainerColor = AppStyle.Colors.disabledPrimary,
+                disabledContentColor = AppStyle.Colors.disabledText
+            )
+        ) {
+            Text("루트 보기", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
@@ -120,21 +120,11 @@ fun DayPagerScreen(plan: TripPlan, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Text("뒤로")
-            }
-            Text("${plan.city.name} - 일정", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { showMap = true }) {
-                Icon(Icons.Filled.Map, contentDescription = "지도 보기")
-            }
-        }
+        TopBar(
+            title = "${plan.city.name} - 일정",
+            onLeft = onBack,
+            onRight = { showMap = true }
+        )
 
         HorizontalPager(
             state = pagerState,
@@ -154,25 +144,29 @@ fun DayDetailPage(dayPlan: DayPlan) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(AppStyle.Dimens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(AppStyle.Dimens.sectionGap)
     ) {
         item {
             Text("Day ${dayPlan.day}", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
 
         items(dayPlan.spots) { spot ->
-            val spotKey = "${dayPlan.day}-${spot.name}" // 스팟별 유니크 키
+            val spotKey = "${dayPlan.day}-${spot.name}"
 
-            // ✅ 스팟 카드가 화면에 올라오면 1회 호출(캐싱으로 중복 방지)
             LaunchedEffect(spotKey) {
                 vm.loadForSpot(spotKey, spot)
             }
 
-            Card(Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(AppStyle.Dimens.radiusCard),
+                colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.cardBackground),
+                border = BorderStroke(1.dp, AppStyle.Colors.borderSoft)
+            ) {
                 Column(
-                    Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(spot.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
 
@@ -183,24 +177,35 @@ fun DayDetailPage(dayPlan: DayPlan) {
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(160.dp)
+                                .height(170.dp)
+                                .clip(RoundedCornerShape(AppStyle.Dimens.imageRadius))
                         )
                     } else {
-                        Text("사진 준비 중", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(170.dp)
+                                .clip(RoundedCornerShape(AppStyle.Dimens.imageRadius))
+                                .background(AppStyle.Colors.placeholder),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("사진 준비 중")
+                        }
                     }
 
                     Text(spot.description, fontSize = 14.sp)
 
-                    HorizontalDivider()
+                    HorizontalDivider(color = AppStyle.Colors.borderSoft)
+
                     Text("주변 맛집 1곳", fontWeight = FontWeight.Bold)
 
                     when {
                         state.loading.contains(spotKey) -> {
-                            CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
                         }
 
                         state.error[spotKey] != null -> {
-                            Text("불러오기 실패: ${state.error[spotKey]}")
+                            Text("불러오기 실패: ${state.error[spotKey]}", color = MaterialTheme.colorScheme.error)
                         }
 
                         else -> {
@@ -220,56 +225,151 @@ private fun OneRestaurantCard(r: com.example.myapplication.network.PlaceResult) 
     val context = LocalContext.current
     val photoRef = r.photos?.firstOrNull()?.photo_reference
 
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AppStyle.Colors.surfaceSoft),
+        border = BorderStroke(1.dp, AppStyle.Colors.borderSoft)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = r.place_id != null) {
+                    r.place_id?.let { placeId ->
+                        val uri = Uri.parse(
+                            "https://www.google.com/maps/search/?api=1&query=${Uri.encode(r.name)}&query_place_id=$placeId"
+                        )
+                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    }
+                }
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (!photoRef.isNullOrBlank()) {
+                AsyncImage(
+                    model = placePhotoUrl(photoRef),
+                    contentDescription = r.name,
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(RoundedCornerShape(AppStyle.Dimens.imageRadius)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(RoundedCornerShape(AppStyle.Dimens.imageRadius))
+                        .background(AppStyle.Colors.placeholder),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No\nImage", textAlign = TextAlign.Center, fontSize = 12.sp)
+                }
+            }
+
+            Column(Modifier.weight(1f)) {
+                Text(r.name ?: "(no name)", fontWeight = FontWeight.SemiBold)
+                Text("평점: ${r.rating ?: "-"} · 리뷰: ${r.user_ratings_total ?: 0}", fontSize = 12.sp)
+                if (!r.vicinity.isNullOrBlank()) {
+                    Text(r.vicinity, fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+}
+
+@Composable
+private fun TopBar(
+    title: String,
+    onLeft: () -> Unit,
+    onRight: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = r.place_id != null) {
-                r.place_id?.let { placeId ->
-                    val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(r.name)}&query_place_id=$placeId")
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    intent.setPackage("com.google.android.apps.maps")
-                    try {
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        // Fallback if Google Maps is not installed
-                        val webIntent = Intent(Intent.ACTION_VIEW, uri)
-                        context.startActivity(webIntent)
-                    }
-                }
-            },
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .height(64.dp) // 여기서 TopBar 높이 확정
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (!photoRef.isNullOrBlank()) {
-            AsyncImage(
-                model = placePhotoUrl(photoRef),
-                contentDescription = r.name,
-                modifier = Modifier
-                    .size(76.dp)
-                    .clip(MaterialTheme.shapes.medium),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(76.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(Color(0xFFECEFF1)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No\nImage", textAlign = TextAlign.Center, fontSize = 12.sp)
-            }
-        }
+        TextButton(
+            onClick = onLeft,
+            colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+        ) { Text("뒤로") }
 
-        Column(Modifier.weight(1f)) {
-            Text(r.name ?: "(no name)", fontWeight = FontWeight.SemiBold)
-            Text(
-                "평점: ${r.rating ?: "-"} · 리뷰: ${r.user_ratings_total ?: 0}",
-                fontSize = 12.sp
-            )
-            if (!r.vicinity.isNullOrBlank()) {
-                Text(r.vicinity, fontSize = 12.sp)
+        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+        TextButton(
+            onClick = onRight,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("🗺️", fontSize = 25.sp, lineHeight = 28.sp)
+                Text("지도 보기", fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1)
             }
         }
+    }
+}
+
+
+@Composable
+private fun LengthChip(
+    modifier: Modifier = Modifier,
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val bg by animateColorAsState(
+        targetValue = if (selected) AppStyle.Colors.primarySoft else AppStyle.Colors.surfaceSoft,
+        animationSpec = tween(160),
+        label = "chipBg"
+    )
+
+    FilterChip(
+        modifier = modifier.height(AppStyle.Dimens.chipHeight),
+        selected = selected,
+        onClick = onClick,
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = bg,
+            selectedContainerColor = bg
+        ),
+        label = {
+            Text(text, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        }
+    )
+}
+
+@Composable
+private fun SelectPillButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+
+) {
+    val bg by animateColorAsState(
+        targetValue = if (selected) AppStyle.Colors.primarySoft else AppStyle.Colors.surfaceSoft,
+        animationSpec = tween(160),
+        label = "pillBg"
+    )
+
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(AppStyle.Dimens.cityButtonHeight),
+        shape = RoundedCornerShape(AppStyle.Dimens.radiusPill),
+        colors = ButtonDefaults.buttonColors(containerColor = bg),
+        elevation = null
+    ) {
+        Text(text,color = Color.Black)
     }
 }

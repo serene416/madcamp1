@@ -1,3 +1,4 @@
+
 package com.example.myapplication.ui.tab3
 
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.myapplication.ui.theme.AppStyle
 import java.io.File
 
 @Composable
@@ -46,7 +48,9 @@ fun FolderGridItem(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+
+                            .background(AppStyle.Colors.placeholder),
+
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Image, null)
