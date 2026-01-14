@@ -1,16 +1,12 @@
 package com.example.myapplication.ui.tab3
-///ui수정여기
-import android.net.Uri
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +23,7 @@ fun FolderGridItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val thumbnail = folder.listFiles()?.firstOrNull { it.isFile }?.let { Uri.fromFile(it) }
+    val thumbnail = getFolderThumbnail(folder)
 
     Card(
         modifier = Modifier
@@ -50,14 +46,16 @@ fun FolderGridItem(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(androidx.compose.ui.graphics.Color(0xFFECEFF1)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
-                    ) { Icon(Icons.Default.Image, null) }
+                    ) {
+                        Icon(Icons.Default.Image, null)
+                    }
                 }
             }
 
             Text(
-                folder.name,
+                text = folder.name,
                 modifier = Modifier.padding(8.dp),
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.SemiBold
